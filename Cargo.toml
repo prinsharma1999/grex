@@ -45,8 +45,3 @@ proptest = "0.10.1"
 regex = "1.4.2"
 rstest = "0.6.4"
 tempfile = "3.1.0"
-
-[badges]
-travis-ci = {repository = "pemistahl/grex", branch = "master"}
-codecov = {repository = "pemistahl/grex", branch = "master", service = "github"}
-maintenance = {status = "actively-developed"}

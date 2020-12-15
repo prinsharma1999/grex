@@ -2,7 +2,7 @@
 
 <br>
 
-[![Build Status](https://travis-ci.org/pemistahl/grex.svg?branch=master)](https://travis-ci.org/pemistahl/grex)
+[![Build Status](https://github.com/pemistahl/grex/workflows/grex%20CI/badge.svg?branch=master)](https://github.com/pemistahl/grex/actions?query=workflow%3A%22grex+CI%22+branch%3Amaster)
 [![dependency status](https://deps.rs/crate/grex/1.1.1/status.svg)](https://deps.rs/crate/grex/1.1.1)
 [![codecov](https://codecov.io/gh/pemistahl/grex/branch/master/graph/badge.svg)](https://codecov.io/gh/pemistahl/grex)
 [![lines of code](https://tokei.rs/b1/github/pemistahl/grex?category=code)](https://github.com/XAMPPRocky/tokei)
