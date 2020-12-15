@@ -43,6 +43,7 @@ impl RegExp {
         }
     }
 
+    #[allow(unused_must_use)]
     fn convert_to_lowercase(test_cases: &mut Vec<String>) {
         std::mem::replace(
             test_cases,

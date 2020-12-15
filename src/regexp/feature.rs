@@ -89,9 +89,6 @@ pub enum Feature {
 
 impl Feature {
     pub(crate) fn is_char_class(&self) -> bool {
-        match self {
-            Feature::Repetition => false,
-            _ => true,
-        }
+        !matches!(self, Feature::Repetition)
     }
 }
