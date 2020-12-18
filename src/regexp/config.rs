@@ -23,6 +23,7 @@ pub struct RegExpConfig {
     pub(crate) minimum_substring_length: u32,
     pub(crate) is_non_ascii_char_escaped: bool,
     pub(crate) is_astral_code_point_converted_to_surrogate: bool,
+    pub(crate) is_verbose_mode_enabled: bool,
     pub(crate) is_output_colorized: bool,
 }
 
@@ -34,6 +35,7 @@ impl RegExpConfig {
             minimum_substring_length: 1,
             is_non_ascii_char_escaped: false,
             is_astral_code_point_converted_to_surrogate: false,
+            is_verbose_mode_enabled: false,
             is_output_colorized: false,
         }
     }

@@ -3,19 +3,19 @@
 <br>
 
 [![Build Status](https://github.com/pemistahl/grex/workflows/grex%20CI/badge.svg?branch=master)](https://github.com/pemistahl/grex/actions?query=workflow%3A%22grex+CI%22+branch%3Amaster)
-[![dependency status](https://deps.rs/crate/grex/1.1.1/status.svg)](https://deps.rs/crate/grex/1.1.1)
+[![dependency status](https://deps.rs/crate/grex/1.2.0/status.svg)](https://deps.rs/crate/grex/1.2.0)
 [![codecov](https://codecov.io/gh/pemistahl/grex/branch/master/graph/badge.svg)](https://codecov.io/gh/pemistahl/grex)
 [![lines of code](https://tokei.rs/b1/github/pemistahl/grex?category=code)](https://github.com/XAMPPRocky/tokei)
 [![Downloads](https://img.shields.io/crates/d/grex.svg)](https://crates.io/crates/grex)
 
 [![Docs.rs](https://docs.rs/grex/badge.svg)](https://docs.rs/grex)
 [![Crates.io](https://img.shields.io/crates/v/grex.svg)](https://crates.io/crates/grex)
-[![Lib.rs](https://img.shields.io/badge/lib.rs-v1.1.1-blue)](https://lib.rs/crates/grex)
+[![Lib.rs](https://img.shields.io/badge/lib.rs-v1.2.0-blue)](https://lib.rs/crates/grex)
 [![license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-[![Linux Download](https://img.shields.io/badge/Linux%20Download-v1.1.1-blue?logo=Linux)](https://github.com/pemistahl/grex/releases/download/v1.1.1/grex-v1.1.1-x86_64-unknown-linux-musl.tar.gz)
-[![MacOS Download](https://img.shields.io/badge/macOS%20Download-v1.1.1-blue?logo=Apple)](https://github.com/pemistahl/grex/releases/download/v1.1.1/grex-v1.1.1-x86_64-apple-darwin.tar.gz)
-[![Windows Download](https://img.shields.io/badge/Windows%20Download-v1.1.1-blue?logo=Windows)](https://github.com/pemistahl/grex/releases/download/v1.1.1/grex-v1.1.1-x86_64-pc-windows-msvc.zip)
+[![Linux Download](https://img.shields.io/badge/Linux%20Download-v1.2.0-blue?logo=Linux)](https://github.com/pemistahl/grex/releases/download/v1.2.0/grex-v1.2.0-x86_64-unknown-linux-musl.tar.gz)
+[![MacOS Download](https://img.shields.io/badge/macOS%20Download-v1.2.0-blue?logo=Apple)](https://github.com/pemistahl/grex/releases/download/v1.2.0/grex-v1.2.0-x86_64-apple-darwin.tar.gz)
+[![Windows Download](https://img.shields.io/badge/Windows%20Download-v1.2.0-blue?logo=Windows)](https://github.com/pemistahl/grex/releases/download/v1.2.0/grex-v1.2.0-x86_64-pc-windows-msvc.zip)
 
 ## <a name="table-of-contents"></a> Table of Contents
 1. [What does this tool do?](#what-does-tool-do)
@@ -115,7 +115,7 @@ In order to use *grex* as a library, simply add it as a dependency to your `Carg
 
 ```toml
 [dependencies]
-grex = "1.1.1"
+grex = "1.2.0"
 ```
 
 ## 5. <a name="how-to-use"></a> How to use? <sup>[Top ▲](#table-of-contents)</sup>
@@ -128,7 +128,7 @@ All settings can be freely combined with each other.
 ```
 $ grex -h
 
-grex 1.1.1
+grex 1.2.0
 © 2019-2020 Peter M. Stahl <pemistahl@gmail.com>
 Licensed under the Apache License, Version 2.0
 Downloadable from https://crates.io/crates/grex
@@ -171,8 +171,8 @@ ARGS:
 
 #### 5.2.1 Default settings
 
-Test cases are passed either from a collection via [`RegExpBuilder::from()`](https://docs.rs/grex/1.1.1/grex/struct.RegExpBuilder.html#method.from) 
-or from a file via [`RegExpBuilder::from_file()`](https://docs.rs/grex/1.1.1/grex/struct.RegExpBuilder.html#method.from_file).
+Test cases are passed either from a collection via [`RegExpBuilder::from()`](https://docs.rs/grex/1.2.0/grex/struct.RegExpBuilder.html#method.from) 
+or from a file via [`RegExpBuilder::from_file()`](https://docs.rs/grex/1.2.0/grex/struct.RegExpBuilder.html#method.from_file).
 If read from a file, each test case must be on a separate line. Lines may be ended with either a newline `\n` or a carriage
 return with a line feed `\r\n`.
 

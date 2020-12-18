@@ -128,6 +128,11 @@ impl RegExpBuilder {
         self
     }
 
+    pub fn with_verbose_mode(&mut self) -> &mut Self {
+        self.config.is_verbose_mode_enabled = true;
+        self
+    }
+
     /// Tells `RegExpBuilder` to provide syntax highlighting for the resulting regular expression.
     ///
     /// ⚠ This method may only be used if the resulting regular expression is meant to

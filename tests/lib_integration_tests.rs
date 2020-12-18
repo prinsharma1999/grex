@@ -80,6 +80,8 @@ mod no_conversion {
             case(vec!["a", "b\\n", "c"], "^(?:b\\\\n|[ac])$"),
             case(vec!["[a-z]", "(d,e,f)"], "^(?:\\(d,e,f\\)|\\[a\\-z\\])$"),
             case(vec!["3.5", "4.5", "4,5"], "^(?:3\\.5|4[,.]5)$"),
+            case(vec!["\u{b}"], "^\\v$"), // U+000B Line Tabulation
+            case(vec!["\\u{b}"], "^\\\\u\\{b\\}$"),
             case(vec!["I ♥ cake"], "^I ♥ cake$"),
             case(vec!["I \u{2665} cake"], "^I ♥ cake$"),
             case(vec!["I \\u{2665} cake"], "^I \\\\u\\{2665\\} cake$"),

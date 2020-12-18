@@ -14,7 +14,7 @@
 
 [package]
 name = "grex"
-version = "1.1.1"
+version = "1.2.0"
 authors = ["Peter M. Stahl <pemistahl@gmail.com>"]
 description = """
 grex generates regular expressions from user-provided test cases.
@@ -31,8 +31,10 @@ keywords = ["pattern", "regex", "regexp"]
 [dependencies]
 colored = "2.0.0"
 itertools = "0.9.0"
+lazy_static = "1.4.0"
 ndarray = "0.14.0"
 petgraph = {version = "0.5.1", default-features = false, features = ["stable_graph"]}
+regex = "1.4.2"
 structopt = "0.3.21"
 unic-char-range = "0.9.0"
 unic-ucd-category = "0.9.0"
@@ -42,6 +44,5 @@ unicode-segmentation = "1.7.1"
 assert_cmd = "1.0.2"
 predicates = "1.0.5"
 proptest = "0.10.1"
-regex = "1.4.2"
 rstest = "0.6.4"
 tempfile = "3.1.0"

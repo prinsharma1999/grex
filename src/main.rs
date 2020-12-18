@@ -170,11 +170,20 @@ struct CLI {
     is_group_captured: bool,
 
     #[structopt(
+        name = "verbose",
+        short = "x",
+        long,
+        help = "Produces a nicer looking regular expression by indenting it on multiple lines",
+        display_order = 12
+    )]
+    is_verbose_mode_enabled: bool,
+
+    #[structopt(
         name = "colorize",
         short,
         long,
         help = "Provides syntax highlighting for the resulting regular expression",
-        display_order = 12
+        display_order = 13
     )]
     is_output_colorized: bool,
 
@@ -290,6 +299,10 @@ fn handle_input(cli: &CLI, input: Result<Vec<String>, Error>) {
                 builder.with_escaping_of_non_ascii_chars(
                     cli.is_astral_code_point_converted_to_surrogate,
                 );
+            }
+
+            if cli.is_verbose_mode_enabled {
+                builder.with_verbose_mode();
             }
 
             if cli.is_output_colorized {

@@ -41,6 +41,7 @@ pub enum ColorizableString {
     RightBracket,
     RightParenthesis,
     SpaceCharClass,
+    VerboseModeFlag,
     WordCharClass,
 }
 
@@ -66,7 +67,9 @@ impl ColorizableString {
         }
 
         match self {
-            ColorizableString::IgnoreCaseFlag => repr.bright_yellow().on_black(),
+            ColorizableString::IgnoreCaseFlag | ColorizableString::VerboseModeFlag => {
+                repr.bright_yellow().on_black()
+            }
             ColorizableString::Pipe => repr.red().bold(),
             ColorizableString::Asterisk | ColorizableString::QuestionMark => repr.purple().bold(),
             ColorizableString::Caret | ColorizableString::DollarSign => repr.yellow().bold(),
@@ -124,6 +127,7 @@ impl Display for ColorizableString {
                 ColorizableString::RightBracket => "]".to_string(),
                 ColorizableString::RightParenthesis => ")".to_string(),
                 ColorizableString::SpaceCharClass => "\\s".to_string(),
+                ColorizableString::VerboseModeFlag => "(?x)".to_string(),
                 ColorizableString::WordCharClass => "\\w".to_string(),
             }
         )

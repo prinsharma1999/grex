@@ -20,6 +20,8 @@ use crate::fsm::DFA;
 use crate::regexp::config::RegExpConfig;
 use colored::ColoredString;
 use itertools::Itertools;
+use lazy_static::lazy_static;
+use regex::Regex;
 use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Result};
 
@@ -84,45 +86,60 @@ impl RegExp {
 
 impl Display for RegExp {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let (flag, left_anchor, left_parenthesis, right_parenthesis, right_anchor) =
-            to_colorized_string(
-                vec![
-                    if self.config.is_case_insensitive_matching() {
-                        ColorizableString::IgnoreCaseFlag
-                    } else {
-                        ColorizableString::EmptyString
-                    },
-                    ColorizableString::Caret,
-                    if self.config.is_capturing_group_enabled() {
-                        ColorizableString::CapturingLeftParenthesis
-                    } else {
-                        ColorizableString::NonCapturingLeftParenthesis
-                    },
-                    ColorizableString::RightParenthesis,
-                    ColorizableString::DollarSign,
-                ],
-                &self.config,
-            );
+        let (
+            ignore_case_flag,
+            verbose_mode_flag,
+            left_anchor,
+            left_parenthesis,
+            right_parenthesis,
+            right_anchor,
+        ) = to_colorized_string(
+            vec![
+                if self.config.is_case_insensitive_matching() {
+                    ColorizableString::IgnoreCaseFlag
+                } else {
+                    ColorizableString::EmptyString
+                },
+                ColorizableString::VerboseModeFlag,
+                ColorizableString::Caret,
+                if self.config.is_capturing_group_enabled() {
+                    ColorizableString::CapturingLeftParenthesis
+                } else {
+                    ColorizableString::NonCapturingLeftParenthesis
+                },
+                ColorizableString::RightParenthesis,
+                ColorizableString::DollarSign,
+            ],
+            &self.config,
+        );
 
-        match self.ast {
-            Expression::Alternation(_, _) => write!(
-                f,
+        let mut regexp = match self.ast {
+            Expression::Alternation(_, _) => format!(
                 "{}{}{}{}{}{}",
-                flag,
+                ignore_case_flag,
                 left_anchor,
                 left_parenthesis,
                 self.ast.to_string(),
                 right_parenthesis,
                 right_anchor
             ),
-            _ => write!(
-                f,
+            _ => format!(
                 "{}{}{}{}",
-                flag,
+                ignore_case_flag,
                 left_anchor,
                 self.ast.to_string(),
                 right_anchor
             ),
+        };
+
+        if regexp.contains("\u{b}") {
+            regexp = regexp.replace("\u{b}", "\\v"); // U+000B Line Tabulation
+        }
+
+        if self.config.is_verbose_mode_enabled {
+            write!(f, "{}", apply_verbose_mode(regexp, verbose_mode_flag))
+        } else {
+            write!(f, "{}", regexp)
         }
     }
 }
@@ -131,6 +148,7 @@ fn to_colorized_string(
     strings: Vec<ColorizableString>,
     config: &RegExpConfig,
 ) -> (
+    ColoredString,
     ColoredString,
     ColoredString,
     ColoredString,
@@ -148,5 +166,82 @@ fn to_colorized_string(
         v[2].clone(),
         v[3].clone(),
         v[4].clone(),
+        v[5].clone(),
     )
+}
+
+fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> String {
+    lazy_static! {
+        static ref VERBOSE_MODE_REGEX: Regex = Regex::new(
+            r#"(?x)
+            (?:
+                \u{1b}\[
+                (?:
+                    1;31m   # red bold
+                    |
+                    1;35m   # purple bold
+                    |
+                    1;33m   # yellow bold
+                    |
+                    1;32m   # green bold
+                    |
+                    1;36m   # cyan bold
+                    |
+                    104;37m # white on bright blue
+                    |
+                    40;93m  # bright yellow on black
+                    |
+                    103;30m # black on bright yellow
+                )
+            )?
+            (?:
+                \(\?:
+                |
+                \[.+\]
+                |
+                \\[\^(){}\[\]|$*+?\\nrtv.-]
+                |
+                [\^(){}\[\]|$*+?\\.-]
+                |
+                [^\^(){}\[\]|$*+?\\.-]+
+            )
+            (?:\u{1b}\[0m)? # color reset
+            "#,
+        )
+        .unwrap();
+    }
+
+    let mut verbose_regexp = vec![verbose_mode_flag.to_string()];
+    let mut nesting_level = 0;
+
+    for match_part in VERBOSE_MODE_REGEX.find_iter(&regexp) {
+        let substr = match_part
+            .as_str()
+            .to_string()
+            .replace("#", "\\#")
+            .replace(" ", "\\s")
+            .replace(" ", "\\s")
+            .replace(" ", "\\s")
+            .replace(" ", "\\s")
+            .replace(" ", "\\s")
+            .replace(" ", "\\s")
+            .replace(" ", "\\s")
+            .replace("\u{85}", "\\s")
+            .replace(" ", "\\ ");
+
+        let is_char_class = substr.starts_with("[") && substr.ends_with("]");
+
+        if !is_char_class && substr.contains(')') && !substr.contains("\\)") {
+            nesting_level -= 1;
+        }
+
+        let indentation = "  ".repeat(nesting_level);
+        verbose_regexp.push(format!("{}{}", indentation, substr));
+
+        if substr.contains('(') && !substr.contains("\\(") {
+            nesting_level += 1;
+        }
+    }
+
+    verbose_regexp.join("\n")
 }
