@@ -42,6 +42,7 @@ unicode-segmentation = "1.7.1"
 
 [dev-dependencies]
 assert_cmd = "1.0.2"
+indoc = "1.0.3"
 predicates = "1.0.6"
 proptest = "0.10.1"
 rstest = "0.6.4"

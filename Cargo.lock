@@ -82,6 +82,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
+name = "cfg-if"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
+
+[[package]]
 name = "clap"
 version = "2.33.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -148,11 +154,11 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "getrandom"
-version = "0.1.15"
+version = "0.1.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fc587bc0ec293155d5bfa6b9891ec18a1e330c234f896ea47fbada4cadbe47e6"
+checksum = "8fc3cb4d91f53b50155bdcfd23f6a4c39ae1969c2ae85982b135750cccaf5fce"
 dependencies = [
- "cfg-if",
+ "cfg-if 1.0.0",
  "libc",
  "wasi",
 ]
@@ -163,6 +169,7 @@ version = "1.2.0"
 dependencies = [
  "assert_cmd",
  "colored",
+ "indoc",
  "itertools",
  "lazy_static",
  "ndarray",
@@ -186,9 +193,9 @@ checksum = "d7afe4a420e3fe79967a00898cc1f4db7c8a49a9333a29f8a4bd76a253d5cd04"
 
 [[package]]
 name = "heck"
-version = "0.3.1"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "20564e78d53d2bb135c343b3f47714a56af2061f1c928fdb541dc7b9fdd94205"
+checksum = "87cbf45460356b7deeb5e3415b5563308c0a9b057c85e12b06ad551f98d0a6ac"
 dependencies = [
  "unicode-segmentation",
 ]
@@ -210,6 +217,15 @@ checksum = "4fb1fa934250de4de8aef298d81c729a7d33d8c239daa3a7575e6b92bfc7313b"
 dependencies = [
  "autocfg",
  "hashbrown",
+]
+
+[[package]]
+name = "indoc"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5a75aeaaef0ce18b58056d306c27b07436fbb34b8816c53094b76dd81803136"
+dependencies = [
+ "unindent",
 ]
 
 [[package]]
@@ -332,15 +348,15 @@ dependencies = [
 
 [[package]]
 name = "predicates-core"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06075c3a3e92559ff8929e7a280684489ea27fe44805174c3ebd9328dcb37178"
+checksum = "fb3dbeaaf793584e29c58c7e3a82bbb3c7c06b63cea68d13b0e3cddc124104dc"
 
 [[package]]
 name = "predicates-tree"
-version = "1.0.0"
+version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e63c4859013b38a76eca2414c64911fba30def9e3202ac461a2d22831220124"
+checksum = "aee95d988ee893cb35c06b148c80ed2cd52c8eea927f50ba7a0be1a786aeab73"
 dependencies = [
  "predicates-core",
  "treeline",
@@ -407,9 +423,9 @@ checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 
 [[package]]
 name = "quote"
-version = "1.0.7"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa563d17ecb180e500da1cfd2b028310ac758de548efdd203e18f283af693f37"
+checksum = "991431c3519a3f36861882da93630ce66b52918dcf1b8e2fd66b397fc96f28df"
 dependencies = [
  "proc-macro2",
 ]
@@ -509,7 +525,7 @@ version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dec448bc157977efdc0a71369cf923915b0c4806b1b2449c3fb011071d6f7c38"
 dependencies = [
- "cfg-if",
+ "cfg-if 0.1.10",
  "proc-macro2",
  "quote",
  "rustc_version",
@@ -584,9 +600,9 @@ dependencies = [
 
 [[package]]
 name = "syn"
-version = "1.0.54"
+version = "1.0.57"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9a2af957a63d6bd42255c359c93d9bfdb97076bd3b820897ce55ffbfbf107f44"
+checksum = "4211ce9909eb971f111059df92c45640aad50a619cf55cd76476be803c4c68e6"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -599,7 +615,7 @@ version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7a6e24d9338a0a5be79593e2fa15a648add6138caa803e2d5bc782c371732ca9"
 dependencies = [
- "cfg-if",
+ "cfg-if 0.1.10",
  "libc",
  "rand",
  "redox_syscall",
@@ -690,6 +706,12 @@ name = "unicode-xid"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
+
+[[package]]
+name = "unindent"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f14ee04d9415b52b3aeab06258a3f07093182b88ba0f9b8d203f211a7a7d41c7"
 
 [[package]]
 name = "vec_map"
