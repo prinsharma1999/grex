@@ -245,7 +245,10 @@ fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> Strin
         .to_string()
         .replace("]\n\n", "]")
         .replace("\n^", "^")
-        .replace("\n$\n", "\n$");
+        .replace("\n$\n", "\n$")
+        .replace("\n)$", "\n)\n$")
+        .replace(")\n\u{1b}[0m\u{1b}[1;35m?", ")\u{1b}[0m\u{1b}[1;35m?")
+        .replace(")\n\u{1b}[0m\u{1b}[1;33m\n$", ")\n\u{1b}[0m\u{1b}[1;33m$");
 
     let mut verbose_regexp = vec![verbose_mode_flag.to_string()];
     let mut nesting_level = 0;
