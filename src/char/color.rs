@@ -27,6 +27,7 @@ pub enum ColorizableString {
     EmptyString,
     Hyphen,
     IgnoreCaseFlag,
+    IgnoreCaseAndVerboseModeFlag,
     LeftBrace,
     LeftBracket,
     NonCapturingLeftParenthesis,
@@ -67,9 +68,9 @@ impl ColorizableString {
         }
 
         match self {
-            ColorizableString::IgnoreCaseFlag | ColorizableString::VerboseModeFlag => {
-                repr.bright_yellow().on_black()
-            }
+            ColorizableString::IgnoreCaseFlag
+            | ColorizableString::IgnoreCaseAndVerboseModeFlag
+            | ColorizableString::VerboseModeFlag => repr.bright_yellow().on_black(),
             ColorizableString::Pipe => repr.red().bold(),
             ColorizableString::Asterisk | ColorizableString::QuestionMark => repr.purple().bold(),
             ColorizableString::Caret | ColorizableString::DollarSign => repr.yellow().bold(),
@@ -112,6 +113,7 @@ impl Display for ColorizableString {
                 ColorizableString::DollarSign => "$".to_string(),
                 ColorizableString::Hyphen => "-".to_string(),
                 ColorizableString::IgnoreCaseFlag => "(?i)".to_string(),
+                ColorizableString::IgnoreCaseAndVerboseModeFlag => "(?ix)".to_string(),
                 ColorizableString::LeftBrace => "{".to_string(),
                 ColorizableString::LeftBracket => "[".to_string(),
                 ColorizableString::EmptyString => "".to_string(),

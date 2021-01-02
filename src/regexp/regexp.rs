@@ -100,7 +100,11 @@ impl Display for RegExp {
                 } else {
                     ColorizableString::EmptyString
                 },
-                ColorizableString::VerboseModeFlag,
+                if self.config.is_case_insensitive_matching() {
+                    ColorizableString::IgnoreCaseAndVerboseModeFlag
+                } else {
+                    ColorizableString::VerboseModeFlag
+                },
                 ColorizableString::Caret,
                 if self.config.is_capturing_group_enabled() {
                     ColorizableString::CapturingLeftParenthesis
@@ -132,7 +136,7 @@ impl Display for RegExp {
             ),
         };
 
-        if regexp.contains("\u{b}") {
+        if regexp.contains('\u{b}') {
             regexp = regexp.replace("\u{b}", "\\v"); // U+000B Line Tabulation
         }
 
@@ -174,71 +178,90 @@ fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> Strin
     lazy_static! {
         static ref VERBOSE_MODE_REGEX: Regex = Regex::new(
             r#"(?x)
-            (?:
-                \u{1b}\[
+            (
                 (?:
-                    1;31m   # red bold
+                    \u{1b}\[
+                    (?:
+                        1;31m   # red bold
+                        |
+                        1;35m   # purple bold
+                        |
+                        1;33m   # yellow bold
+                        |
+                        1;32m   # green bold
+                        |
+                        1;36m   # cyan bold
+                        |
+                        104;37m # white on bright blue
+                        |
+                        40;93m  # bright yellow on black
+                        |
+                        103;30m # black on bright yellow
+                        |
+                        0m      # color reset
+                    )
+                )*
+                (?:
+                    \(\?i\)
                     |
-                    1;35m   # purple bold
+                    \( (?: \?: )?
                     |
-                    1;33m   # yellow bold
+                    \[.*\]
                     |
-                    1;32m   # green bold
+                    \)\?
                     |
-                    1;36m   # cyan bold
+                    (?:
+                        (?: \\[\^$()|DdSsWw\\\ ] )+
+                        (?: \\* [^\^$|()\\] )*
+                    )+
                     |
-                    104;37m # white on bright blue
-                    |
-                    40;93m  # bright yellow on black
-                    |
-                    103;30m # black on bright yellow
+                    (?:
+                        (?: \\* [^\^$()|\\] )+
+                        (?: \\[\^$()|DdSsWw\\\ ] )*
+                    )+
                 )
-            )?
-            (?:
-                \(\?:
-                |
-                \[.+\]
-                |
-                \\[\^(){}\[\]|$*+?\\nrtv.-]
-                |
-                [\^(){}\[\]|$*+?\\.-]
-                |
-                [^\^(){}\[\]|$*+?\\.-]+
             )
-            (?:\u{1b}\[0m)? # color reset
-            "#,
+            "#
         )
         .unwrap();
     }
 
+    let regexp_with_static_replacements = regexp
+        .replace("(?i)", "")
+        .replace("#", "\\#")
+        .replace(" ", "\\s")
+        .replace(" ", "\\s")
+        .replace(" ", "\\s")
+        .replace(" ", "\\s")
+        .replace(" ", "\\s")
+        .replace(" ", "\\s")
+        .replace(" ", "\\s")
+        .replace("\u{85}", "\\s")
+        .replace("\u{2028}", "\\s")
+        .replace(" ", "\\ ");
+
+    let regexp_with_dynamic_replacements = VERBOSE_MODE_REGEX
+        .replace_all(&regexp_with_static_replacements, "\n$1\n")
+        .to_string()
+        .replace("]\n\n", "]")
+        .replace("\n^", "^")
+        .replace("\n$\n", "\n$");
+
     let mut verbose_regexp = vec![verbose_mode_flag.to_string()];
     let mut nesting_level = 0;
 
-    for match_part in VERBOSE_MODE_REGEX.find_iter(&regexp) {
-        let substr = match_part
-            .as_str()
-            .to_string()
-            .replace("#", "\\#")
-            .replace(" ", "\\s")
-            .replace(" ", "\\s")
-            .replace(" ", "\\s")
-            .replace(" ", "\\s")
-            .replace(" ", "\\s")
-            .replace(" ", "\\s")
-            .replace(" ", "\\s")
-            .replace("\u{85}", "\\s")
-            .replace(" ", "\\ ");
-
-        let is_char_class = substr.starts_with("[") && substr.ends_with("]");
-
-        if !is_char_class && substr.contains(')') && !substr.contains("\\)") {
+    for line in regexp_with_dynamic_replacements.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        if line.starts_with(')') {
             nesting_level -= 1;
         }
 
         let indentation = "  ".repeat(nesting_level);
-        verbose_regexp.push(format!("{}{}", indentation, substr));
+        verbose_regexp.push(format!("{}{}", indentation, line));
 
-        if substr.contains('(') && !substr.contains("\\(") {
+        if line.ends_with("(?:") || line.ends_with('(') {
             nesting_level += 1;
         }
     }

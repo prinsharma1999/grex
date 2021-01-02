@@ -22,6 +22,7 @@ use itertools::EitherOrBoth::Both;
 use itertools::Itertools;
 use ndarray::{Array1, Array2};
 use petgraph::prelude::EdgeRef;
+use std::cmp::Reverse;
 use std::collections::BTreeSet;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -105,7 +106,7 @@ impl Expression {
     fn new_alternation(expr1: Expression, expr2: Expression, config: &RegExpConfig) -> Self {
         let mut options: Vec<Expression> = vec![];
         Self::flatten_alternations(&mut options, vec![expr1, expr2]);
-        options.sort_by(|a, b| b.len().cmp(&a.len()));
+        options.sort_by_key(|option| Reverse(option.len()));
         Expression::Alternation(options, config.clone())
     }
 
