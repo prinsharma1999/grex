@@ -15,6 +15,7 @@
  */
 
 use grex::{Feature, RegExpBuilder};
+use indoc::indoc;
 use regex::Regex;
 use rstest::rstest;
 use std::io::Write;
@@ -93,20 +94,21 @@ mod no_conversion {
         )]
         fn succeeds(test_cases: Vec<&str>, expected_output: &str) {
             let regexp = RegExpBuilder::from(&test_cases).build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
             case(vec!["ABC", "abc", "AbC", "aBc"], "(?i)^abc$"),
+            case(vec!["ABC", "zBC", "abc", "AbC", "aBc"], "(?i)^[az]bc$"),
             case(vec!["Ä@Ö€Ü", "ä@ö€ü", "Ä@ö€Ü", "ä@Ö€ü"], "(?i)^ä@ö€ü$"),
         )]
         fn succeeds_with_ignore_case_option(test_cases: Vec<&str>, expected_output: &str) {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::CaseInsensitivity])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -121,8 +123,8 @@ mod no_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -137,7 +139,7 @@ mod no_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -150,22 +152,159 @@ mod no_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::CapturingGroup])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
+        }
+
+        #[rstest(test_cases, expected_output,
+            case(vec![""], indoc!(
+                r#"
+                (?x)
+                ^
+                $"#
+            )),
+            case(vec![" "], indoc!(
+                r#"
+                (?x)
+                ^
+                  \ 
+                $"#
+            )),
+            case(vec!["   "], indoc!(
+                r#"
+                (?x)
+                ^
+                  \ \ \ 
+                $"#
+            )),
+            case(vec!["a", "b", "c"], indoc!(
+                r#"
+                (?x)
+                ^
+                  [a-c]
+                $"#
+            )),
+            case(vec!["a", "b", "bc"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    bc?
+                    |
+                    a
+                  )
+                $"#
+            )),
+            case(vec!["a", "ab", "abc"], indoc!(
+                r#"
+                (?x)
+                ^
+                  a
+                  (?:
+                    bc?
+                  )?
+                $"#
+            )),
+            case(vec!["a", "b", "bcd"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    b
+                    (?:
+                      cd
+                    )?
+                    |
+                    a
+                  )
+                $"#
+            )),
+            case(vec!["a", "b", "x", "de"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    de
+                    |
+                    [abx]
+                  )
+                $"#
+            )),
+            case(vec!["[a-z]", "(d,e,f)"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    \(d,e,f\)
+                    |
+                    \[a\-z\]
+                  )
+                $"#
+            )),
+            case(vec!["3.5", "4.5", "4,5"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    3\.5
+                    |
+                    4[,.]5
+                  )
+                $"#
+            ))
+        )]
+        fn succeeds_with_verbose_mode_option(test_cases: Vec<&str>, expected_output: &str) {
+            let regexp = RegExpBuilder::from(&test_cases).with_verbose_mode().build();
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
+        }
+
+        #[rstest(test_cases, expected_output,
+            case(vec!["ABC", "abc", "AbC", "aBc"], indoc!(
+                r#"
+                (?ix)
+                ^
+                  abc
+                $"#
+            )),
+            case(vec!["ABC", "zBC", "abc", "AbC", "aBc"], indoc!(
+                r#"
+                (?ix)
+                ^
+                  [az]bc
+                $"#
+            )),
+            case(vec!["Ä@Ö€Ü", "ä@ö€ü", "Ä@ö€Ü", "ä@Ö€ü"], indoc!(
+                r#"
+                (?ix)
+                ^
+                  ä@ö€ü
+                $"#
+            ))
+        )]
+        fn succeeds_with_ignore_case_and_verbose_mode_option(
+            test_cases: Vec<&str>,
+            expected_output: &str,
+        ) {
+            let regexp = RegExpBuilder::from(&test_cases)
+                .with_conversion_of(&[Feature::CaseInsensitivity])
+                .with_verbose_mode()
+                .build();
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[test]
-        #[allow(unused_must_use)]
         fn succeeds_with_file_input() {
             let mut file = NamedTempFile::new().unwrap();
-            writeln!(file, "a\nb\nc\r\nxyz");
+            writeln!(file, "a\nb\nc\r\nxyz").unwrap();
 
             let expected_output = "^(?:xyz|[a-c])$";
             let test_cases = vec!["a", "b", "c", "xyz"];
 
             let regexp = RegExpBuilder::from_file(file.path()).build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -229,8 +368,8 @@ mod no_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -241,8 +380,8 @@ mod no_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::CaseInsensitivity])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -258,8 +397,8 @@ mod no_conversion {
                 .with_conversion_of(&[Feature::Repetition])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -275,7 +414,131 @@ mod no_conversion {
                 .with_conversion_of(&[Feature::Repetition])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+        }
+
+        #[rstest(test_cases, expected_output,
+            case(vec!["   "], indoc!(
+                r#"
+                (?x)
+                ^
+                  \ {3}
+                $"#
+            )),
+            case(vec!["aa"], indoc!(
+                r#"
+                (?x)
+                ^
+                  a{2}
+                $"#
+            )),
+            case(vec!["aaa", "a", "aa"], indoc!(
+                r#"
+                (?x)
+                ^
+                  a{1,3}
+                $"#
+            )),
+            case(vec!["aaaa", "a", "aa"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    a{1,2}
+                    |
+                    a{4}
+                  )
+                $"#
+            )),
+            case(vec!["ababab"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    ab
+                  ){3}
+                $"#
+            )),
+            case(vec!["abababa"], indoc!(
+                r#"
+                (?x)
+                ^
+                  a
+                  (?:
+                    ba
+                  ){3}
+                $"#
+            )),
+            case(vec!["abababaa"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    ab
+                  ){3}
+                  a{2}
+                $"#
+            )),
+            case(vec!["aabaababab"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    a{2}b
+                  ){2}
+                  abab
+                $"#
+            )),
+            case(vec!["abaaaabaaba"], indoc!(
+                r#"
+                (?x)
+                ^
+                  abaa
+                  (?:
+                    a{2}b
+                  ){2}
+                  a
+                $"#
+            )),
+            case(vec!["xy̆y̆z", "xy̆y̆y̆y̆z"], indoc!(
+                r#"
+                (?x)
+                ^
+                  x
+                  (?:
+                    (?:
+                      y̆
+                    ){2}
+                    |
+                    (?:
+                      y̆
+                    ){4}
+                  )
+                  z
+                $"#
+            )),
+            case(vec!["a", "b\n\t\n\t", "c"], indoc!(
+                r#"
+                (?x)
+                ^
+                  (?:
+                    b
+                    (?:
+                      \n\t
+                    ){2}
+                    |
+                    [ac]
+                  )
+                $"#
+            ))
+        )]
+        fn succeeds_with_verbose_mode_option(test_cases: Vec<&str>, expected_output: &str) {
+            let regexp = RegExpBuilder::from(&test_cases)
+                .with_conversion_of(&[Feature::Repetition])
+                .with_verbose_mode()
+                .build();
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -310,8 +573,8 @@ mod no_conversion {
                 .with_conversion_of(&[Feature::Repetition])
                 .with_minimum_repetitions(3)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -329,8 +592,8 @@ mod no_conversion {
                 .with_conversion_of(&[Feature::Repetition])
                 .with_minimum_substring_length(3)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -349,8 +612,8 @@ mod no_conversion {
                 .with_minimum_repetitions(3)
                 .with_minimum_substring_length(3)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -385,8 +648,8 @@ mod digit_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Digit])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -400,8 +663,8 @@ mod digit_conversion {
                 .with_conversion_of(&[Feature::Digit])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -415,7 +678,7 @@ mod digit_conversion {
                 .with_conversion_of(&[Feature::Digit])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 
@@ -432,8 +695,8 @@ mod digit_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -447,8 +710,8 @@ mod digit_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -462,7 +725,7 @@ mod digit_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -482,8 +745,8 @@ mod digit_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit])
                 .with_minimum_repetitions(2)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -512,8 +775,8 @@ mod space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Space])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -527,8 +790,8 @@ mod space_conversion {
                 .with_conversion_of(&[Feature::Space])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -542,7 +805,7 @@ mod space_conversion {
                 .with_conversion_of(&[Feature::Space])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 
@@ -559,8 +822,8 @@ mod space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Space])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -574,8 +837,8 @@ mod space_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Space])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -589,7 +852,7 @@ mod space_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Space])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -612,8 +875,8 @@ mod space_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Space])
                 .with_minimum_repetitions(2)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -646,8 +909,8 @@ mod word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Word])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -661,8 +924,8 @@ mod word_conversion {
                 .with_conversion_of(&[Feature::Word])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -676,7 +939,7 @@ mod word_conversion {
                 .with_conversion_of(&[Feature::Word])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 
@@ -693,8 +956,8 @@ mod word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Word])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -708,8 +971,8 @@ mod word_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Word])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -723,7 +986,7 @@ mod word_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Word])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -746,8 +1009,8 @@ mod word_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Word])
                 .with_minimum_repetitions(2)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -768,8 +1031,8 @@ mod digit_space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Digit, Feature::Space])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -783,8 +1046,8 @@ mod digit_space_conversion {
                 .with_conversion_of(&[Feature::Digit, Feature::Space])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -798,7 +1061,7 @@ mod digit_space_conversion {
                 .with_conversion_of(&[Feature::Digit, Feature::Space])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 
@@ -815,8 +1078,8 @@ mod digit_space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit, Feature::Space])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -830,8 +1093,8 @@ mod digit_space_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit, Feature::Space])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -845,7 +1108,7 @@ mod digit_space_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit, Feature::Space])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -868,8 +1131,8 @@ mod digit_space_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit, Feature::Space])
                 .with_minimum_repetitions(2)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -884,8 +1147,8 @@ mod digit_space_conversion {
                 .with_conversion_of(&[Feature::Repetition])
                 .with_minimum_substring_length(3)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -903,8 +1166,8 @@ mod digit_space_conversion {
                 .with_minimum_repetitions(2)
                 .with_minimum_substring_length(3)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -925,8 +1188,8 @@ mod digit_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Digit, Feature::Word])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -940,8 +1203,8 @@ mod digit_word_conversion {
                 .with_conversion_of(&[Feature::Digit, Feature::Word])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -955,7 +1218,7 @@ mod digit_word_conversion {
                 .with_conversion_of(&[Feature::Digit, Feature::Word])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 
@@ -972,8 +1235,8 @@ mod digit_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit, Feature::Word])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -987,8 +1250,8 @@ mod digit_word_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit, Feature::Word])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1002,7 +1265,7 @@ mod digit_word_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit, Feature::Word])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 }
@@ -1023,8 +1286,8 @@ mod space_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Space, Feature::Word])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1038,8 +1301,8 @@ mod space_word_conversion {
                 .with_conversion_of(&[Feature::Space, Feature::Word])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1053,7 +1316,7 @@ mod space_word_conversion {
                 .with_conversion_of(&[Feature::Space, Feature::Word])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 
@@ -1070,8 +1333,8 @@ mod space_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Space, Feature::Word])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1085,8 +1348,8 @@ mod space_word_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Space, Feature::Word])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1100,7 +1363,7 @@ mod space_word_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::Space, Feature::Word])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 }
@@ -1121,8 +1384,8 @@ mod digit_space_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Digit, Feature::Space, Feature::Word])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1136,8 +1399,8 @@ mod digit_space_word_conversion {
                 .with_conversion_of(&[Feature::Digit, Feature::Space, Feature::Word])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1151,7 +1414,7 @@ mod digit_space_word_conversion {
                 .with_conversion_of(&[Feature::Digit, Feature::Space, Feature::Word])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 
@@ -1173,8 +1436,8 @@ mod digit_space_word_conversion {
                     Feature::Word,
                 ])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1193,8 +1456,8 @@ mod digit_space_word_conversion {
                 ])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1213,7 +1476,7 @@ mod digit_space_word_conversion {
                 ])
                 .with_escaping_of_non_ascii_chars(true)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
         }
     }
 }
@@ -1234,8 +1497,8 @@ mod non_digit_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::NonDigit])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1249,8 +1512,8 @@ mod non_digit_conversion {
                 .with_conversion_of(&[Feature::NonDigit])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1264,8 +1527,8 @@ mod non_digit_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::NonDigit])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1276,8 +1539,8 @@ mod non_digit_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::NonDigit])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1298,8 +1561,8 @@ mod non_space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::NonSpace])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1316,8 +1579,8 @@ mod non_space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::NonSpace])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1338,8 +1601,8 @@ mod non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1353,8 +1616,8 @@ mod non_word_conversion {
                 .with_conversion_of(&[Feature::NonWord])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1371,8 +1634,8 @@ mod non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
 
         #[rstest(test_cases, expected_output,
@@ -1386,8 +1649,8 @@ mod non_word_conversion {
                 .with_conversion_of(&[Feature::Repetition, Feature::NonWord])
                 .with_escaping_of_non_ascii_chars(false)
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1408,8 +1671,8 @@ mod non_digit_non_space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::NonDigit, Feature::NonSpace])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1423,8 +1686,8 @@ mod non_digit_non_space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::NonDigit, Feature::NonSpace])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1445,8 +1708,8 @@ mod non_digit_non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::NonDigit, Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1460,8 +1723,8 @@ mod non_digit_non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::NonDigit, Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1482,8 +1745,8 @@ mod non_space_non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::NonSpace, Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1500,8 +1763,8 @@ mod non_space_non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::NonSpace, Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1522,8 +1785,8 @@ mod non_digit_non_space_non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::NonDigit, Feature::NonSpace, Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1542,8 +1805,8 @@ mod non_digit_non_space_non_word_conversion {
                     Feature::NonWord,
                 ])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1564,8 +1827,8 @@ mod digit_non_digit_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Digit, Feature::NonDigit])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1579,8 +1842,8 @@ mod digit_non_digit_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Digit, Feature::NonDigit])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1601,8 +1864,8 @@ mod space_non_space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Space, Feature::NonSpace])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1619,8 +1882,8 @@ mod space_non_space_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Space, Feature::NonSpace])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
@@ -1641,8 +1904,8 @@ mod word_non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Word, Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 
@@ -1659,13 +1922,13 @@ mod word_non_word_conversion {
             let regexp = RegExpBuilder::from(&test_cases)
                 .with_conversion_of(&[Feature::Repetition, Feature::Word, Feature::NonWord])
                 .build();
-            test_if_regexp_is_correct(regexp, expected_output, &test_cases);
-            test_if_regexp_matches_test_cases(expected_output, test_cases);
+            assert_that_regexp_is_correct(regexp, expected_output, &test_cases);
+            assert_that_regexp_matches_test_cases(expected_output, test_cases);
         }
     }
 }
 
-fn test_if_regexp_is_correct(regexp: String, expected_output: &str, test_cases: &[&str]) {
+fn assert_that_regexp_is_correct(regexp: String, expected_output: &str, test_cases: &[&str]) {
     assert_eq!(
         regexp, expected_output,
         "\n\ninput: {:?}\nexpected: {}\nactual: {}\n\n",
@@ -1673,7 +1936,7 @@ fn test_if_regexp_is_correct(regexp: String, expected_output: &str, test_cases: 
     );
 }
 
-fn test_if_regexp_matches_test_cases(expected_output: &str, test_cases: Vec<&str>) {
+fn assert_that_regexp_matches_test_cases(expected_output: &str, test_cases: Vec<&str>) {
     let re = Regex::new(expected_output).unwrap();
     for test_case in test_cases {
         assert!(

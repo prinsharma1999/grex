@@ -212,8 +212,18 @@ fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> Strin
                     (?: 
                         \? 
                         | 
-                        \{ \d+ (?: ,\d+ )? \} 
+                        \{ \d+ (?: ,\d+ )? \}
+                        |
+                        \u{1b}\[0m \u{1b}\[104;37m \{  \u{1b}\[0m 
+                                   \u{1b}\[104;37m \d+ \u{1b}\[0m 
+                            (?: 
+                                \u{1b}\[104;37m ,   \u{1b}\[0m 
+                                \u{1b}\[104;37m \d+ \u{1b}\[0m 
+                            )?
+                        \u{1b}\[104;37m \} \u{1b}\[0m 
                     )
+                    |
+                    (?: \| | \u{1b}\[1;31m \| \u{1b}\[0m )
                     |
                     (?:
                         (?: \\[\^$()|DdSsWw\\\ ] )+
@@ -252,9 +262,14 @@ fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> Strin
         .replace("\n^", "^")
         .replace("\n$\n", "\n$")
         .replace("\n)$", "\n)\n$")
+        .replace("^$", "^\n$")
         .replace(")\n\u{1b}[0m\u{1b}[1;35m?", ")\u{1b}[0m\u{1b}[1;35m?")
         .replace(")\n\u{1b}[0m\u{1b}[1;33m\n$", ")\n\u{1b}[0m\u{1b}[1;33m$")
-        .replace(")\n\u{1b}[0m\u{1b}[104;37m{", ")\u{1b}[0m\u{1b}[104;37m{");
+        .replace(")\n\u{1b}[0m\u{1b}[104;37m{", ")\u{1b}[0m\u{1b}[104;37m{")
+        .replace(
+            "\u{1b}[1;33m^\n\u{1b}[0m\u{1b}[1;33m\n$\u{1b}[0m",
+            "\u{1b}[1;33m^\n\u{1b}[0m\u{1b}[1;33m$\u{1b}[0m",
+        );
 
     let mut verbose_regexp = vec![verbose_mode_flag.to_string()];
     let mut nesting_level = 0;
@@ -263,14 +278,14 @@ fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> Strin
         if line.is_empty() {
             continue;
         }
-        if line == "$" || line.starts_with(')') {
+        if line == "$" || line.ends_with("$\u{1b}[0m") || line.starts_with(')') {
             nesting_level -= 1;
         }
 
         let indentation = "  ".repeat(nesting_level);
         verbose_regexp.push(format!("{}{}", indentation, line));
 
-        if line == "^" || line.ends_with("(?:") || line.ends_with('(') {
+        if line.ends_with('^') || line.ends_with("(?:") || line.ends_with('(') {
             nesting_level += 1;
         }
     }
