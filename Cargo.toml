@@ -29,7 +29,6 @@ categories = ["command-line-utilities"]
 keywords = ["pattern", "regex", "regexp"]
 
 [dependencies]
-colored = "2.0.0"
 itertools = "0.10.0"
 lazy_static = "1.4.0"
 ndarray = "0.14.0"

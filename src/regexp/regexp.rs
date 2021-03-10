@@ -15,10 +15,9 @@
  */
 
 use crate::ast::Expression;
-use crate::char::{ColorizableString, GraphemeCluster};
+use crate::char::GraphemeCluster;
 use crate::fsm::DFA;
 use crate::regexp::config::RegExpConfig;
-use colored::ColoredString;
 use itertools::Itertools;
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -86,54 +85,49 @@ impl RegExp {
 
 impl Display for RegExp {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let (
-            ignore_case_flag,
-            verbose_mode_flag,
-            left_anchor,
-            left_parenthesis,
-            right_parenthesis,
-            right_anchor,
-        ) = to_colorized_string(
-            vec![
-                if self.config.is_case_insensitive_matching() {
-                    ColorizableString::IgnoreCaseFlag
-                } else {
-                    ColorizableString::EmptyString
-                },
-                if self.config.is_case_insensitive_matching() {
-                    ColorizableString::IgnoreCaseAndVerboseModeFlag
-                } else {
-                    ColorizableString::VerboseModeFlag
-                },
-                ColorizableString::Caret,
-                if self.config.is_capturing_group_enabled() {
-                    ColorizableString::CapturingLeftParenthesis
-                } else {
-                    ColorizableString::NonCapturingLeftParenthesis
-                },
-                ColorizableString::RightParenthesis,
-                ColorizableString::DollarSign,
-            ],
-            &self.config,
-        );
+        let ignore_case_flag = if self.config.is_case_insensitive_matching() {
+            "(?i)"
+        } else {
+            ""
+        };
+        let verbose_mode_flag = if self.config.is_case_insensitive_matching() {
+            "(?ix)"
+        } else {
+            "(?x)"
+        };
+        let left_parenthesis = if self.config.is_capturing_group_enabled() {
+            "("
+        } else {
+            "(?:"
+        };
 
         let mut regexp = match self.ast {
-            Expression::Alternation(_, _) => format!(
-                "{}{}{}{}{}{}",
-                ignore_case_flag,
-                left_anchor,
-                left_parenthesis,
-                self.ast.to_string(),
-                right_parenthesis,
-                right_anchor
-            ),
-            _ => format!(
-                "{}{}{}{}",
-                ignore_case_flag,
-                left_anchor,
-                self.ast.to_string(),
-                right_anchor
-            ),
+            Expression::Alternation(_, _) => {
+                if self.config.is_output_colorized {
+                    format!(
+                        "\u{1b}[40;93m{}\u{1b}[0m\u{1b}[1;33m^\u{1b}[0m\u{1b}[1;32m{}\u{1b}[0m{}\u{1b}[1;32m)\u{1b}[0m\u{1b}[1;33m$\u{1b}[0m", 
+                        ignore_case_flag, left_parenthesis, self.ast.to_string()
+                    )
+                } else {
+                    format!(
+                        "{}^{}{})$",
+                        ignore_case_flag,
+                        left_parenthesis,
+                        self.ast.to_string()
+                    )
+                }
+            }
+            _ => {
+                if self.config.is_output_colorized {
+                    format!(
+                        "\u{1b}[40;93m{}\u{1b}[0m\u{1b}[1;33m^\u{1b}[0m{}\u{1b}[1;33m$\u{1b}[0m",
+                        ignore_case_flag,
+                        self.ast.to_string()
+                    )
+                } else {
+                    format!("{}^{}$", ignore_case_flag, self.ast.to_string())
+                }
+            }
         };
 
         if regexp.contains('\u{b}') {
@@ -141,40 +135,19 @@ impl Display for RegExp {
         }
 
         if self.config.is_verbose_mode_enabled {
-            write!(f, "{}", apply_verbose_mode(regexp, verbose_mode_flag))
+            let colored_flag = if self.config.is_output_colorized {
+                format!("\u{1b}[40;93m{}\u{1b}[0m", verbose_mode_flag)
+            } else {
+                verbose_mode_flag.to_string()
+            };
+            write!(f, "{}", apply_verbose_mode(regexp, colored_flag))
         } else {
             write!(f, "{}", regexp)
         }
     }
 }
 
-fn to_colorized_string(
-    strings: Vec<ColorizableString>,
-    config: &RegExpConfig,
-) -> (
-    ColoredString,
-    ColoredString,
-    ColoredString,
-    ColoredString,
-    ColoredString,
-    ColoredString,
-) {
-    let v = strings
-        .iter()
-        .map(|it| it.to_colorized_string(config.is_output_colorized))
-        .collect_vec();
-
-    (
-        v[0].clone(),
-        v[1].clone(),
-        v[2].clone(),
-        v[3].clone(),
-        v[4].clone(),
-        v[5].clone(),
-    )
-}
-
-fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> String {
+fn apply_verbose_mode(regexp: String, verbose_mode_flag: String) -> String {
     lazy_static! {
         static ref VERBOSE_MODE_REGEX: Regex = Regex::new(
             r#"(?x)
@@ -213,17 +186,7 @@ fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> Strin
                         \? 
                         | 
                         \{ \d+ (?: ,\d+ )? \}
-                        |
-                        \u{1b}\[0m \u{1b}\[104;37m \{  \u{1b}\[0m 
-                                   \u{1b}\[104;37m \d+ \u{1b}\[0m 
-                            (?: 
-                                \u{1b}\[104;37m ,   \u{1b}\[0m 
-                                \u{1b}\[104;37m \d+ \u{1b}\[0m 
-                            )?
-                        \u{1b}\[104;37m \} \u{1b}\[0m 
                     )
-                    |
-                    (?: \| | \u{1b}\[1;31m \| \u{1b}\[0m )
                     |
                     (?:
                         (?: \\[\^$()|DdSsWw\\\ ] )+
@@ -271,7 +234,7 @@ fn apply_verbose_mode(regexp: String, verbose_mode_flag: ColoredString) -> Strin
             "\u{1b}[1;33m^\n\u{1b}[0m\u{1b}[1;33m$\u{1b}[0m",
         );
 
-    let mut verbose_regexp = vec![verbose_mode_flag.to_string()];
+    let mut verbose_regexp = vec![verbose_mode_flag];
     let mut nesting_level = 0;
 
     for line in regexp_with_dynamic_replacements.lines() {

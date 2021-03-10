@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-use crate::char::ColorizableString;
 use crate::regexp::RegExpConfig;
-use colored::ColoredString;
 use itertools::Itertools;
 use std::fmt::{Display, Formatter, Result};
 
@@ -169,93 +167,60 @@ impl Display for Grapheme {
         } else {
             self.repetitions.iter().map(|it| it.to_string()).join("")
         };
-
-        let (
-            colored_value,
-            comma,
-            left_brace,
-            right_brace,
-            left_parenthesis,
-            right_parenthesis,
-            min,
-            max,
-        ) = to_colorized_string(
-            vec![
-                ColorizableString::from(&value),
-                ColorizableString::Comma,
-                ColorizableString::LeftBrace,
-                ColorizableString::RightBrace,
-                if self.config.is_capturing_group_enabled() {
-                    ColorizableString::CapturingLeftParenthesis
-                } else {
-                    ColorizableString::NonCapturingLeftParenthesis
-                },
-                ColorizableString::RightParenthesis,
-                ColorizableString::Number(self.min),
-                ColorizableString::Number(self.max),
-            ],
-            &self.config,
-        );
+        let left_parenthesis = if self.config.is_capturing_group_enabled() {
+            "("
+        } else {
+            "(?:"
+        };
+        let char_classes = vec!["\\d", "\\s", "\\w", "\\D", "\\S", "\\W"];
+        let colored_value = if self.config.is_output_colorized && char_classes.contains(&&*value) {
+            format!("\u{1b}[103;30m{}\u{1b}[0m", value)
+        } else {
+            value
+        };
 
         if !is_range && is_repetition && is_single_char {
-            write!(f, "{}{}{}{}", colored_value, left_brace, min, right_brace)
+            if self.config.is_output_colorized {
+                write!(f, "{}\u{1b}[104;37m{{{}}}\u{1b}[0m", colored_value, self.min)
+            } else {
+                write!(f, "{}{{{}}}", colored_value, self.min)
+            }
         } else if !is_range && is_repetition && !is_single_char {
-            write!(
-                f,
-                "{}{}{}{}{}{}",
-                left_parenthesis, colored_value, right_parenthesis, left_brace, min, right_brace
-            )
+            if self.config.is_output_colorized {
+                write!(
+                    f,
+                    "\u{1b}[1;32m{}\u{1b}[0m{}\u{1b}[1;32m)\u{1b}[0m\u{1b}[104;37m{{{}}}\u{1b}[0m",
+                    left_parenthesis, colored_value, self.min
+                )
+            } else {
+                write!(f, "{}{}){{{}}}", left_parenthesis, colored_value, self.min)
+            }
         } else if is_range && is_single_char {
-            write!(
-                f,
-                "{}{}{}{}{}{}",
-                colored_value, left_brace, min, comma, max, right_brace
-            )
+            if self.config.is_output_colorized {
+                write!(
+                    f,
+                    "{}\u{1b}[104;37m{{{},{}}}\u{1b}[0m",
+                    colored_value, self.min, self.max
+                )
+            } else {
+                write!(f, "{}{{{},{}}}", colored_value, self.min, self.max)
+            }
         } else if is_range && !is_single_char {
-            write!(
-                f,
-                "{}{}{}{}{}{}{}{}",
-                left_parenthesis,
-                colored_value,
-                right_parenthesis,
-                left_brace,
-                min,
-                comma,
-                max,
-                right_brace
-            )
+            if self.config.is_output_colorized {
+                write!(
+                    f, 
+                    "\u{1b}[1;32m{}\u{1b}[0m{}\u{1b}[1;32m)\u{1b}[0m\u{1b}[104;37m{{{},{}}}\u{1b}[0m", 
+                    left_parenthesis, colored_value, self.min, self.max
+                )
+            } else {
+                write!(
+                    f,
+                    "{}{}){{{},{}}}",
+                    left_parenthesis, colored_value, self.min, self.max
+                )
+            }
         } else {
             write!(f, "{}", colored_value)
         }
     }
-}
-
-fn to_colorized_string(
-    strings: Vec<ColorizableString>,
-    config: &RegExpConfig,
-) -> (
-    ColoredString,
-    ColoredString,
-    ColoredString,
-    ColoredString,
-    ColoredString,
-    ColoredString,
-    ColoredString,
-    ColoredString,
-) {
-    let v = strings
-        .iter()
-        .map(|it| it.to_colorized_string(config.is_output_colorized))
-        .collect_vec();
-
-    (
-        v[0].clone(),
-        v[1].clone(),
-        v[2].clone(),
-        v[3].clone(),
-        v[4].clone(),
-        v[5].clone(),
-        v[6].clone(),
-        v[7].clone(),
-    )
 }

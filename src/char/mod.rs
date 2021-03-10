@@ -15,9 +15,7 @@
  */
 
 mod cluster;
-mod color;
 mod grapheme;
 
 pub use cluster::GraphemeCluster;
-pub use color::ColorizableString;
 pub use grapheme::Grapheme;

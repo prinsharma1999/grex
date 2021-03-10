@@ -15,7 +15,7 @@
  */
 
 use crate::ast::{Expression, Quantifier};
-use crate::char::{ColorizableString, GraphemeCluster};
+use crate::char::GraphemeCluster;
 use crate::regexp::RegExpConfig;
 use itertools::Itertools;
 use std::collections::BTreeSet;
@@ -52,30 +52,33 @@ fn format_alternation(
     options: &[Expression],
     config: &RegExpConfig,
 ) -> Result {
-    let (left_parenthesis, right_parenthesis, pipe) = vec![
-        if config.is_capturing_group_enabled() {
-            ColorizableString::CapturingLeftParenthesis
-        } else {
-            ColorizableString::NonCapturingLeftParenthesis
-        },
-        ColorizableString::RightParenthesis,
-        ColorizableString::Pipe,
-    ]
-    .iter()
-    .map(|it| it.to_colorized_string(config.is_output_colorized))
-    .collect_tuple()
-    .unwrap();
-
+    let left_parenthesis = if config.is_capturing_group_enabled() {
+        "("
+    } else {
+        "(?:"
+    };
+    let pipe = if config.is_output_colorized {
+        "\u{1b}[1;31m|\u{1b}[0m"
+    } else {
+        "|"
+    };
     let alternation_str = options
         .iter()
         .map(|option| {
             if option.precedence() < expr.precedence() && !option.is_single_codepoint() {
-                format!("{}{}{}", left_parenthesis, option, right_parenthesis)
+                if config.is_output_colorized {
+                    format!(
+                        "\u{1b}[1;32m{}\u{1b}[0m{}\u{1b}[1;32m)\u{1b}[0m",
+                        left_parenthesis, option
+                    )
+                } else {
+                    format!("{}{})", left_parenthesis, option)
+                }
             } else {
                 format!("{}", option)
             }
         })
-        .join(&pipe.to_string());
+        .join(pipe);
 
     write!(f, "{}", alternation_str)
 }
@@ -128,15 +131,6 @@ fn format_character_class(
     subsets.push(subset);
 
     let mut char_class_strs = vec![];
-    let (hyphen, left_bracket, right_bracket) = vec![
-        ColorizableString::Hyphen,
-        ColorizableString::LeftBracket,
-        ColorizableString::RightBracket,
-    ]
-    .iter()
-    .map(|it| it.to_colorized_string(config.is_output_colorized))
-    .collect_tuple()
-    .unwrap();
 
     for subset in subsets.iter() {
         if subset.len() <= 2 {
@@ -144,22 +138,31 @@ fn format_character_class(
                 char_class_strs.push((*c).to_string());
             }
         } else {
-            char_class_strs.push(format!(
-                "{}{}{}",
-                subset.first().unwrap(),
-                hyphen,
-                subset.last().unwrap()
-            ));
+            let frmt = if config.is_output_colorized {
+                format!(
+                    "{}\u{1b}[1;36m-\u{1b}[0m{}",
+                    subset.first().unwrap(),
+                    subset.last().unwrap()
+                )
+            } else {
+                format!("{}-{}", subset.first().unwrap(), subset.last().unwrap())
+            };
+
+            char_class_strs.push(frmt);
         }
     }
 
-    write!(
-        f,
-        "{}{}{}",
-        left_bracket,
-        char_class_strs.join(""),
-        right_bracket
-    )
+    let joined_classes = char_class_strs.join("");
+
+    if config.is_output_colorized {
+        write!(
+            f,
+            "\u{1b}[1;36m[\u{1b}[0m{}\u{1b}[1;36m]\u{1b}[0m",
+            joined_classes,
+        )
+    } else {
+        write!(f, "[{}]", joined_classes)
+    }
 }
 
 fn format_concatenation(
@@ -169,24 +172,23 @@ fn format_concatenation(
     expr2: &Expression,
     config: &RegExpConfig,
 ) -> Result {
+    let left_parenthesis = if config.is_capturing_group_enabled() {
+        "("
+    } else {
+        "(?:"
+    };
     let expr_strs = vec![expr1, expr2]
         .iter()
         .map(|&it| {
             if it.precedence() < expr.precedence() && !it.is_single_codepoint() {
-                let (left_parenthesis, right_parenthesis) = vec![
-                    if config.is_capturing_group_enabled() {
-                        ColorizableString::CapturingLeftParenthesis
-                    } else {
-                        ColorizableString::NonCapturingLeftParenthesis
-                    },
-                    ColorizableString::RightParenthesis,
-                ]
-                .iter()
-                .map(|it| it.to_colorized_string(config.is_output_colorized))
-                .collect_tuple()
-                .unwrap();
-
-                format!("{}{}{}", left_parenthesis, it, right_parenthesis)
+                if config.is_output_colorized {
+                    format!(
+                        "\u{1b}[1;32m{}\u{1b}[0m{}\u{1b}[1;32m)\u{1b}[0m",
+                        left_parenthesis, it
+                    )
+                } else {
+                    format!("{}{})", left_parenthesis, it)
+                }
             } else {
                 format!("{}", it)
             }
@@ -241,30 +243,24 @@ fn format_repetition(
     quantifier: &Quantifier,
     config: &RegExpConfig,
 ) -> Result {
-    let (colored_quantifier, left_parenthesis, right_parenthesis) = vec![
-        match quantifier {
-            Quantifier::KleeneStar => ColorizableString::Asterisk,
-            Quantifier::QuestionMark => ColorizableString::QuestionMark,
-        },
-        if config.is_capturing_group_enabled() {
-            ColorizableString::CapturingLeftParenthesis
-        } else {
-            ColorizableString::NonCapturingLeftParenthesis
-        },
-        ColorizableString::RightParenthesis,
-    ]
-    .iter()
-    .map(|it| it.to_colorized_string(config.is_output_colorized))
-    .collect_tuple()
-    .unwrap();
-
-    if expr1.precedence() < expr.precedence() && !expr1.is_single_codepoint() {
-        write!(
-            f,
-            "{}{}{}{}",
-            left_parenthesis, expr1, right_parenthesis, colored_quantifier
-        )
+    let left_parenthesis = if config.is_capturing_group_enabled() {
+        "("
     } else {
-        write!(f, "{}{}", expr1, colored_quantifier)
+        "(?:"
+    };
+    if expr1.precedence() < expr.precedence() && !expr1.is_single_codepoint() {
+        if config.is_output_colorized {
+            write!(
+                f,
+                "\u{1b}[1;32m{}\u{1b}[0m{}\u{1b}[1;32m)\u{1b}[0m\u{1b}[1;35m{}\u{1b}[0m",
+                left_parenthesis, expr1, quantifier
+            )
+        } else {
+            write!(f, "{}{}){}", left_parenthesis, expr1, quantifier)
+        }
+    } else if config.is_output_colorized {
+        write!(f, "{}\u{1b}[1;35m{}\u{1b}[0m", expr1, quantifier)
+    } else {
+        write!(f, "{}{}", expr1, quantifier)
     }
 }
