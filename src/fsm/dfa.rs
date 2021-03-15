@@ -17,7 +17,6 @@
 use crate::char::{Grapheme, GraphemeCluster};
 use crate::regexp::RegExpConfig;
 use itertools::Itertools;
-use petgraph::dot::{Config, Dot};
 use petgraph::graph::NodeIndex;
 use petgraph::stable_graph::{Edges, StableGraph};
 use petgraph::visit::Dfs;
@@ -66,16 +65,6 @@ impl DFA {
 
     pub(crate) fn is_final_state(&self, state: State) -> bool {
         self.final_state_indices.contains(&state.index())
-    }
-
-    #[allow(dead_code)]
-    fn println(&self, comment: &str) {
-        println!(
-            "{}: {}",
-            comment,
-            Dot::with_config(&self.graph, &[Config::NodeIndexLabel])
-        );
-        println!("{:?}", self.final_state_indices);
     }
 
     fn new(config: &RegExpConfig) -> Self {
